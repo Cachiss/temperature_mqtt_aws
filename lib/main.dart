@@ -16,8 +16,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _temperature = '';
-  String _humidity = '';
+  int? _temperature;
+  int? _humidity;
 
   @override
   initState() {
@@ -89,12 +89,25 @@ class _MyAppState extends State<MyApp> {
       client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
 
       // Subscribe to the same topic
-      client.subscribe(topic, MqttQos.atLeastOnce);
+      client.subscribe('temperature', MqttQos.atLeastOnce);
+      client.subscribe('humidity', MqttQos.atLeastOnce);
       // Print incoming messages from another client on this topic
       client.updates!.listen((List<MqttReceivedMessage<MqttMessage>> c) {
         final recMess = c[0].payload as MqttPublishMessage;
         final pt =
             MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
+        print(c);
+        if (c[0].topic == 'temperature') {
+          print("Mensaje recibido en temperatura");
+          setState(() {
+            _temperature = int.parse(pt);
+          });
+        } else if (c[0].topic == 'humidity') {
+          print("Mensaje recibido en humedad");
+          setState(() {
+            _humidity = int.parse(pt);
+          });
+        }
         print(
             'EXAMPLE::Change notification:: topic is <${c[0].topic}>, payload is <-- $pt -->');
         print('');
@@ -105,91 +118,190 @@ class _MyAppState extends State<MyApp> {
       client.disconnect();
     }
 
-    print('Sleeping....');
-    await MqttUtilities.asyncSleep(10);
-
-    print('Disconnecting');
-    client.disconnect();
-
     return 0;
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+        debugShowCheckedModeBanner: false,
         title: 'MQTT app remedial',
         home: Scaffold(
-          backgroundColor: Color(0xFF2C3333),
-          body: Container(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  const SizedBox(
-                    height: 50,
-                  ),
-                  Container(
-                    alignment: Alignment.center,
-                    child: const Text(
-                      "Temperatura",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'Roboto',
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold),
+          backgroundColor: const Color(0xFF2C3333),
+          body: SingleChildScrollView(
+            child: Container(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    const SizedBox(
+                      height: 50,
                     ),
-                  ),
-                  const SizedBox(
-                    height: 50,
-                  ),
-                  Container(
-                    alignment: Alignment.center,
-                    child: Card(
-                      color: Color.fromRGBO(46, 79, 79, 1),
-                      elevation: 10,
-                      child: Container(
-                        width: 300,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: EdgeInsets.all(10),
-                        child: Column(children: []),
+                    Container(
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "Temperatura",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'Roboto',
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
-                  ),
-                  Container(
-                    margin: EdgeInsets.only(top: 30),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      "Humedad",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'Roboto',
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold),
+                    const SizedBox(
+                      height: 50,
                     ),
-                  ),
-                  SizedBox(
-                    height: 50,
-                  ),
-                  Container(
-                    alignment: Alignment.center,
-                    child: Card(
-                      color: Color.fromRGBO(46, 79, 79, 1),
-                      elevation: 10,
-                      child: Container(
-                        width: 300,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
+                    Container(
+                      alignment: Alignment.center,
+                      child: Card(
+                        color: Color.fromRGBO(46, 79, 79, 1),
+                        elevation: 10,
+                        child: Container(
+                          width: 300,
+                          height: 150,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: EdgeInsets.all(10),
+                          child: Column(children: [
+                            Container(
+                                alignment: Alignment.centerLeft,
+                                child: const Image(
+                                  image: AssetImage('assets/images/cloud.png'),
+                                  width: 40,
+                                  height: 36,
+                                )),
+                            if (_temperature == null)
+                              Container(
+                                margin: const EdgeInsets.only(top: 10),
+                                alignment: Alignment.centerLeft,
+                                child: const Text(
+                                  "No hay datos aun",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'Roboto',
+                                    fontSize: 30,
+                                  ),
+                                ),
+                              )
+                            else
+                              Container(
+                                margin: const EdgeInsets.only(top: 10),
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  "$_temperature°C",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'Roboto',
+                                    fontSize: 30,
+                                  ),
+                                ),
+                              ),
+                            Container(
+                              margin: const EdgeInsets.only(top: 10),
+                              alignment: Alignment.centerLeft,
+                              child: const Text(
+                                'En algún lugar de la UT...',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'Roboto',
+                                    fontSize: 15,
+                                    fontStyle: FontStyle.italic),
+                              ),
+                            )
+                          ]),
                         ),
-                        padding: EdgeInsets.all(10),
-                        child: Column(children: []),
                       ),
                     ),
-                  ),
-                ],
-              )),
+                    Container(
+                      margin: EdgeInsets.only(top: 50),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "Humedad",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'Roboto',
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 30,
+                    ),
+                    Container(
+                      alignment: Alignment.center,
+                      child: Card(
+                        color: Color.fromRGBO(46, 79, 79, 1),
+                        elevation: 10,
+                        child: Container(
+                          width: 300,
+                          height: 150,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: EdgeInsets.all(10),
+                          child: Column(children: [
+                            Container(
+                                alignment: Alignment.centerLeft,
+                                child: const Image(
+                                  image:
+                                      AssetImage('assets/images/humidity.png'),
+                                  width: 40,
+                                  height: 36,
+                                )),
+                            if (_humidity == null)
+                              Container(
+                                margin: const EdgeInsets.only(top: 10),
+                                alignment: Alignment.centerLeft,
+                                child: const Text(
+                                  "No hay datos aun",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'Roboto',
+                                    fontSize: 30,
+                                  ),
+                                ),
+                              )
+                            else
+                              Container(
+                                margin: const EdgeInsets.only(top: 10),
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  "$_humidity%",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'Roboto',
+                                    fontSize: 30,
+                                  ),
+                                ),
+                              ),
+                            Container(
+                              margin: const EdgeInsets.only(top: 10),
+                              alignment: Alignment.centerLeft,
+                              child: const Text(
+                                'En algún lugar de la UT...',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: 'Roboto',
+                                    fontSize: 15,
+                                    fontStyle: FontStyle.italic),
+                              ),
+                            )
+                          ]),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(top: 60),
+                      alignment: Alignment.bottomCenter,
+                      child: const Image(
+                        image: AssetImage('assets/images/brands.png'),
+                        width: 300,
+                        height: 70,
+                      ),
+                    )
+                  ],
+                )),
+          ),
         ));
   }
 }

@@ -61,6 +61,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/images/
     - assets/certs/AmazonRootCA1.pem
     - assets/certs/8a16158fe9fa767e45b9cd649866cd808e40ae769085bc7a2257b42e001f2ff5-private.pem.key
     - assets/certs/8a16158fe9fa767e45b9cd649866cd808e40ae769085bc7a2257b42e001f2ff5-certificate.pem.crt
