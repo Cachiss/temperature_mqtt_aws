@@ -1,12 +1,21 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:remedial_mqtt_app/no_internet.dart';
 
-void main() => runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final hasInternet = await InternetConnectionChecker().hasConnection;
+  if (hasInternet) {
+    runApp(const MyApp());
+  } else {
+    runApp(const NoInternet());
+  }
+}
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -18,16 +27,21 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   int? _temperature;
   int? _humidity;
+  bool _isConnected = false;
 
   @override
   initState() {
     super.initState();
-    connectAws();
+    Future.delayed(Duration.zero, () async {
+      await connectAws();
+      setState(() {
+        _isConnected = true;
+      });
+    });
   }
 
   Future<int> connectAws() async {
     // Your AWS IoT Core endpoint url
-    print("hola xd");
     const url = 'a1ugah3gemg9dt-ats.iot.us-west-2.amazonaws.com';
     // AWS IoT MQTT default port
     const port = 8883;
@@ -45,7 +59,6 @@ class _MyAppState extends State<MyApp> {
     client.setProtocolV311();
     // logging if you wish
     client.logging(on: false);
-    print("paso 2");
     // Set the security context as you need, note this is the standard Dart SecurityContext class.
     // If this is incorrect the TLS handshake will abort and a Handshake exception will be raised,
     // no connect ack message will be received and the broker will disconnect.
@@ -153,7 +166,7 @@ class _MyAppState extends State<MyApp> {
                     Container(
                       alignment: Alignment.center,
                       child: Card(
-                        color: Color.fromRGBO(46, 79, 79, 1),
+                        color: const Color.fromRGBO(46, 79, 79, 1),
                         elevation: 10,
                         child: Container(
                           width: 300,
@@ -161,59 +174,70 @@ class _MyAppState extends State<MyApp> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: EdgeInsets.all(10),
-                          child: Column(children: [
-                            Container(
-                                alignment: Alignment.centerLeft,
-                                child: const Image(
-                                  image: AssetImage('assets/images/cloud.png'),
-                                  width: 40,
-                                  height: 36,
-                                )),
-                            if (_temperature == null)
-                              Container(
-                                margin: const EdgeInsets.only(top: 10),
-                                alignment: Alignment.centerLeft,
-                                child: const Text(
-                                  "No hay datos aun",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: 'Roboto',
-                                    fontSize: 30,
+                          padding: const EdgeInsets.all(10),
+                          child: _isConnected == false
+                              ? Container(
+                                  alignment: Alignment.center,
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                    ),
                                   ),
-                                ),
-                              )
-                            else
-                              Container(
-                                margin: const EdgeInsets.only(top: 10),
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  "$_temperature°C",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: 'Roboto',
-                                    fontSize: 30,
-                                  ),
-                                ),
-                              ),
-                            Container(
-                              margin: const EdgeInsets.only(top: 10),
-                              alignment: Alignment.centerLeft,
-                              child: const Text(
-                                'En algún lugar de la UT...',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: 'Roboto',
-                                    fontSize: 15,
-                                    fontStyle: FontStyle.italic),
-                              ),
-                            )
-                          ]),
+                                )
+                              : Column(children: [
+                                  Container(
+                                      alignment: Alignment.centerLeft,
+                                      child: const Image(
+                                        image: AssetImage(
+                                            'assets/images/cloud.png'),
+                                        width: 40,
+                                        height: 36,
+                                      )),
+                                  if (_temperature == null)
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 10),
+                                      alignment: Alignment.centerLeft,
+                                      child: const Text(
+                                        "No hay datos aun",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Roboto',
+                                          fontSize: 30,
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 10),
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        "$_temperature°C",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Roboto',
+                                          fontSize: 30,
+                                        ),
+                                      ),
+                                    ),
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 10),
+                                    alignment: Alignment.centerLeft,
+                                    child: const Text(
+                                      'En algún lugar de la UT...',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Roboto',
+                                          fontSize: 15,
+                                          fontStyle: FontStyle.italic),
+                                    ),
+                                  )
+                                ]),
                         ),
                       ),
                     ),
                     Container(
-                      margin: EdgeInsets.only(top: 50),
+                      margin: const EdgeInsets.only(top: 50),
                       alignment: Alignment.center,
                       child: const Text(
                         "Humedad",
@@ -224,7 +248,7 @@ class _MyAppState extends State<MyApp> {
                             fontWeight: FontWeight.bold),
                       ),
                     ),
-                    SizedBox(
+                    const SizedBox(
                       height: 30,
                     ),
                     Container(
@@ -239,54 +263,64 @@ class _MyAppState extends State<MyApp> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           padding: EdgeInsets.all(10),
-                          child: Column(children: [
-                            Container(
-                                alignment: Alignment.centerLeft,
-                                child: const Image(
-                                  image:
-                                      AssetImage('assets/images/humidity.png'),
-                                  width: 40,
-                                  height: 36,
-                                )),
-                            if (_humidity == null)
-                              Container(
-                                margin: const EdgeInsets.only(top: 10),
-                                alignment: Alignment.centerLeft,
-                                child: const Text(
-                                  "No hay datos aun",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: 'Roboto',
-                                    fontSize: 30,
+                          child: _isConnected == false
+                              ? Container(
+                                  alignment: Alignment.center,
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                    ),
                                   ),
-                                ),
-                              )
-                            else
-                              Container(
-                                margin: const EdgeInsets.only(top: 10),
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  "$_humidity%",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: 'Roboto',
-                                    fontSize: 30,
-                                  ),
-                                ),
-                              ),
-                            Container(
-                              margin: const EdgeInsets.only(top: 10),
-                              alignment: Alignment.centerLeft,
-                              child: const Text(
-                                'En algún lugar de la UT...',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: 'Roboto',
-                                    fontSize: 15,
-                                    fontStyle: FontStyle.italic),
-                              ),
-                            )
-                          ]),
+                                )
+                              : Column(children: [
+                                  Container(
+                                      alignment: Alignment.centerLeft,
+                                      child: const Image(
+                                        image: AssetImage(
+                                            'assets/images/humidity.png'),
+                                        width: 40,
+                                        height: 36,
+                                      )),
+                                  if (_humidity == null)
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 10),
+                                      alignment: Alignment.centerLeft,
+                                      child: const Text(
+                                        "No hay datos aun",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Roboto',
+                                          fontSize: 30,
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 10),
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        "$_humidity%",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Roboto',
+                                          fontSize: 30,
+                                        ),
+                                      ),
+                                    ),
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 10),
+                                    alignment: Alignment.centerLeft,
+                                    child: const Text(
+                                      'En algún lugar de la UT...',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Roboto',
+                                          fontSize: 15,
+                                          fontStyle: FontStyle.italic),
+                                    ),
+                                  )
+                                ]),
                         ),
                       ),
                     ),
