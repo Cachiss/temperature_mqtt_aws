@@ -25,8 +25,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  int? _temperature;
-  int? _humidity;
+  double? _temperature;
+  double? _humidity;
   bool _isConnected = false;
 
   @override
@@ -113,12 +113,12 @@ class _MyAppState extends State<MyApp> {
         if (c[0].topic == 'temperature') {
           print("Mensaje recibido en temperatura");
           setState(() {
-            _temperature = int.parse(pt);
+            _temperature = double.parse(pt);
           });
         } else if (c[0].topic == 'humidity') {
           print("Mensaje recibido en humedad");
           setState(() {
-            _humidity = int.parse(pt);
+            _humidity = double.parse(pt);
           });
         }
         print(
