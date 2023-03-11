@@ -95,11 +95,7 @@ class _MyAppState extends State<MyApp> {
 
       // Publish to a topic of your choice after a slight delay, AWS seems to need this
       await MqttUtilities.asyncSleep(1);
-      const topic = '/test/topic';
-      final builder = MqttClientPayloadBuilder();
-      builder.addString('Hello World');
       // Important: AWS IoT Core can only handle QOS of 0 or 1. QOS 2 (exactlyOnce) will fail!
-      client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
 
       // Subscribe to the same topic
       client.subscribe('temperature', MqttQos.atLeastOnce);
